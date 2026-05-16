@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>West Bank Civilian Harm Tracker — PALSHIELD</title>
+<meta name="description" content="Geographic record of documented settler and Israeli military violence against Palestinian civilians in the West Bank.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Public+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+
+<style>
+:root {
+  --bg:           #F5F1EA;
+  --surface:      #FFFFFF;
+  --surface-2:   #FAF6EE;
+  --ink:          #1B1D1A;
+  --ink-muted:    #5C5E58;
+  --ink-soft:     #8A8C84;
+  --border:       #D9D2C2;
+  --border-soft:  #E8E2D3;
+  --olive:        #3D4F2E;
+  --olive-deep:   #2A3820;
+  --olive-light:  #6B7F58;
+  --earth:        #8B6F47;
+  --alert:        #A8392E;
+  --alert-soft:   #C46A60;
+
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans:  'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono:  'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --shadow-sm: 0 1px 2px rgba(27,29,26,0.04);
+  --shadow:    0 4px 16px rgba(27,29,26,0.06);
+  --shadow-lg: 0 16px 48px rgba(27,29,26,0.10);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--bg);
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(61,79,46,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 100%, rgba(139,111,71,0.04) 0%, transparent 50%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─────────────────  HEADER  ───────────────── */
+.site-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 1000;
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.96);
+}
+.site-header__inner {
+  max-width: 1480px; margin: 0 auto;
+  padding: 14px 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+}
+.brand {
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none; color: var(--ink);
+}
+.brand__mark {
+  width: 32px; height: 32px;
+  background: var(--olive);
+  display: grid; place-items: center;
+  color: #F5F1EA; font-family: var(--serif); font-weight: 600; font-size: 17px;
+  letter-spacing: 0.02em;
+  border-radius: 2px;
+}
+.brand__name {
+  font-family: var(--serif);
+  font-size: 20px; font-weight: 600; letter-spacing: 0.04em;
+}
+.brand__name span { color: var(--olive); }
+.header-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: flex; align-items: center; gap: 14px;
+}
+.header-meta__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--olive-light);
+  box-shadow: 0 0 0 3px rgba(107,127,88,0.18);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ─────────────────  HERO  ───────────────── */
+.hero {
+  max-width: 1480px; margin: 0 auto;
+  padding: 48px 28px 24px;
+}
+.hero__label {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--olive);
+  margin-bottom: 14px;
+}
+.hero__title {
+  font-family: var(--serif);
+  font-size: clamp(34px, 5vw, 56px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin: 0 0 18px;
+  color: var(--ink);
+  max-width: 900px;
+}
+.hero__title em { font-style: italic; color: var(--olive); font-weight: 500; }
+.hero__lede {
+  font-family: var(--serif);
+  font-size: clamp(17px, 2vw, 21px);
+  font-style: italic;
+  color: var(--ink-muted);
+  max-width: 760px;
+  line-height: 1.5;
+  margin: 0 0 28px;
+}
+.hero__strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 32px;
+}
+.hero__stat {
+  background: var(--surface);
+  padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.hero__stat__label {
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.hero__stat__value {
+  font-family: var(--serif);
+  font-size: 30px; font-weight: 500;
+  color: var(--ink); line-height: 1;
+}
+.hero__stat__value--alert { color: var(--alert); }
+.hero__stat__sub {
+  font-size: 12px; color: var(--ink-muted);
+}
+
+/* ─────────────────  MAIN GRID  ───────────────── */
+.main {
+  max-width: 1480px; margin: 0 auto;
+  padding: 8px 28px 48px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+}
+@media (max-width: 980px) {
+  .main { grid-template-columns: 1fr; }
+  .filters { position: relative; top: 0; max-height: none; }
+}
+
+/* ─────────────────  FILTERS  ───────────────── */
+.filters {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 22px 22px 28px;
+  position: sticky; top: 80px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  align-self: start;
+}
+.filters__header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 22px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.filters__title {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--olive);
+  margin: 0;
+}
+.filters__reset {
+  background: none; border: none;
+  font-family: var(--sans); font-size: 12px;
+  color: var(--ink-muted); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+  padding: 0;
+}
+.filters__reset:hover { color: var(--alert); }
+
+.filter-group { margin-bottom: 22px; }
+.filter-group__label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+}
+.filter-group__hint {
+  font-size: 11px; color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+/* Year range slider */
+.year-range {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.year-range__values {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 13px;
+  color: var(--ink);
+}
+.year-range__values strong { color: var(--olive); font-weight: 600; }
+.year-range__sliders { position: relative; height: 32px; }
+.year-range__sliders input[type="range"] {
+  position: absolute; left: 0; right: 0; top: 12px;
+  width: 100%; height: 4px;
+  appearance: none; -webkit-appearance: none;
+  background: transparent; outline: none;
+  pointer-events: none;
+}
+.year-range__sliders input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--olive);
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--olive);
+  cursor: pointer; pointer-events: auto;
+  margin-top: -6px;
+}
+.year-range__sliders input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--olive); border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--olive);
+  cursor: pointer; pointer-events: auto;
+}
+.year-range__track {
+  position: absolute; left: 0; right: 0; top: 14px;
+  height: 2px; background: var(--border);
+}
+.year-range__track--active {
+  background: var(--olive);
+}
+
+/* Checkboxes */
+.checklist {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.checklist__item {
+  display: flex; align-items: center; gap: 9px;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 0;
+  user-select: none;
+}
+.checklist__item input {
+  appearance: none; -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.checklist__item input:checked {
+  background: var(--olive);
+  border-color: var(--olive);
+}
+.checklist__item input:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px; top: 0px;
+  width: 4px; height: 8px;
+  border: solid var(--surface);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+.checklist__item:hover input:not(:checked) { border-color: var(--olive-light); }
+.checklist__count {
+  margin-left: auto;
+  font-family: var(--mono); font-size: 11px;
+  color: var(--ink-soft);
+}
+
+/* Toggle (fatalities-only) */
+.toggle {
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; user-select: none;
+  font-size: 13px;
+}
+.toggle input {
+  appearance: none; -webkit-appearance: none;
+  width: 30px; height: 16px;
+  background: var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle input::after {
+  content: '';
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 12px; height: 12px;
+  background: var(--surface);
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+.toggle input:checked {
+  background: var(--alert);
+}
+.toggle input:checked::after {
+  transform: translateX(14px);
+}
+
+/* Map layer toggle */
+.layer-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--border);
+  margin-top: 8px;
+}
+.layer-toggle button {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: none; cursor: pointer;
+  color: var(--ink-muted);
+  transition: all 0.15s;
+}
+.layer-toggle button + button { border-left: 1px solid var(--border); }
+.layer-toggle button.is-active {
+  background: var(--olive); color: #F5F1EA;
+}
+.layer-toggle button:hover:not(.is-active) {
+  background: var(--surface-2); color: var(--ink);
+}
+
+/* ─────────────────  CONTENT COLUMN  ───────────────── */
+.content {
+  display: flex; flex-direction: column; gap: 24px;
+  min-width: 0;
+}
+
+/* Map */
+.map-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+}
+.map {
+  height: 620px;
+  background: #E8E5DD;
+}
+.map-legend {
+  position: absolute;
+  bottom: 18px; left: 18px;
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  z-index: 500;
+  font-size: 11px;
+  max-width: 220px;
+}
+.map-legend__title {
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+.map-legend__gradient {
+  height: 8px;
+  background: linear-gradient(to right,
+    rgba(255,237,160,0.6),
+    #FED976,
+    #FEB24C,
+    #FD8D3C,
+    #FC4E2A,
+    #B61E12);
+  margin-bottom: 6px;
+}
+.map-legend__scale {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 10px;
+  color: var(--ink-muted);
+}
+.map-legend__items {
+  display: flex; flex-direction: column; gap: 5px;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+.map-legend__item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px;
+}
+.map-legend__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+}
+.map-loading {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  background: var(--surface-2);
+  z-index: 600;
+  font-family: var(--mono); font-size: 12px;
+  color: var(--ink-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.map-loading.is-hidden { display: none; }
+
+/* Popup (Leaflet override) */
+.leaflet-popup-content-wrapper {
+  border-radius: 0 !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg) !important;
+}
+.leaflet-popup-tip { background: var(--surface) !important; }
+.leaflet-popup-content { margin: 16px 18px !important; font-family: var(--sans); }
+.incident-popup__date {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--olive); letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+.incident-popup__title {
+  font-family: var(--serif); font-size: 17px; font-weight: 600;
+  margin: 0 0 8px; line-height: 1.2;
+}
+.incident-popup__meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 10px;
+}
+.tag {
+  font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 7px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  color: var(--ink-muted);
+}
+.tag--perp-0 { background: rgba(61,79,46,0.10); color: var(--olive-deep); border-color: rgba(61,79,46,0.20); }
+.tag--perp-1 { background: rgba(139,111,71,0.12); color: var(--earth); border-color: rgba(139,111,71,0.22); }
+.tag--perp-2 { background: rgba(107,127,88,0.12); color: var(--olive-light); border-color: rgba(107,127,88,0.22); }
+.tag--perp-3, .tag--perp-4 { background: rgba(92,94,88,0.10); color: var(--ink-muted); }
+.tag--fatal { background: rgba(168,57,46,0.10); color: var(--alert); border-color: rgba(168,57,46,0.22); }
+.tag--source { background: var(--surface); }
+.incident-popup__notes {
+  font-size: 12.5px; line-height: 1.5;
+  color: var(--ink); margin: 0;
+  max-height: 200px; overflow-y: auto;
+}
+.incident-popup__violations {
+  margin-top: 8px; font-size: 11px;
+  color: var(--ink-muted);
+}
+.incident-popup__violations strong {
+  display: block; font-family: var(--mono); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ink-soft); margin-bottom: 4px;
+}
+.incident-popup__violations ul {
+  margin: 0; padding-left: 18px;
+}
+
+/* Cluster icon override */
+.marker-cluster-small div { background-color: rgba(61,79,46,0.7) !important; color: #fff !important; }
+.marker-cluster-small { background-color: rgba(61,79,46,0.25) !important; }
+.marker-cluster-medium div { background-color: rgba(139,111,71,0.75) !important; color: #fff !important; }
+.marker-cluster-medium { background-color: rgba(139,111,71,0.25) !important; }
+.marker-cluster-large div { background-color: rgba(168,57,46,0.85) !important; color: #fff !important; }
+.marker-cluster-large { background-color: rgba(168,57,46,0.25) !important; }
+.marker-cluster div { font-family: var(--mono); font-weight: 500; }
+
+/* ─────────────────  STATS PANEL  ───────────────── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+.stat {
+  background: var(--surface);
+  padding: 18px 20px;
+}
+.stat__label {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-soft); margin-bottom: 8px;
+}
+.stat__value {
+  font-family: var(--serif); font-size: 26px;
+  font-weight: 500; color: var(--ink); line-height: 1.1;
+}
+.stat__sub {
+  font-size: 12px; color: var(--ink-muted);
+  margin-top: 4px;
+}
+
+/* ─────────────────  TREND CHART  ───────────────── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px 28px;
+}
+.panel__header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 18px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+  gap: 16px; flex-wrap: wrap;
+}
+.panel__title {
+  font-family: var(--serif); font-size: 22px;
+  font-weight: 500; margin: 0;
+}
+.panel__sub {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.chart-wrap { position: relative; height: 280px; }
+
+/* Top-locations list */
+.top-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+@media (max-width: 700px) { .top-list { grid-template-columns: 1fr; } }
+.top-list__col h3 {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-muted); margin: 0 0 10px;
+}
+.top-list__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+  align-items: center;
+}
+.top-list__row:last-child { border-bottom: none; }
+.top-list__row__bar {
+  width: 60px; height: 4px;
+  background: var(--surface-2);
+  position: relative;
+}
+.top-list__row__bar__fill {
+  position: absolute; left: 0; top: 0; height: 100%;
+  background: var(--olive);
+}
+.top-list__row__count {
+  font-family: var(--mono); font-size: 12px;
+  color: var(--ink-muted); min-width: 40px; text-align: right;
+}
+
+/* ─────────────────  METHODOLOGY  ───────────────── */
+.methodology {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 32px;
+  padding: 32px 28px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+@media (max-width: 700px) { .methodology { grid-template-columns: 1fr; } }
+.methodology__heading {
+  font-family: var(--serif); font-size: 24px;
+  font-weight: 500; margin: 0;
+  color: var(--olive-deep);
+}
+.methodology__heading-sub {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-muted); margin-top: 4px;
+}
+.methodology__body {
+  font-size: 13.5px; line-height: 1.65;
+  color: var(--ink);
+}
+.methodology__body p { margin: 0 0 12px; }
+.methodology__body p:last-child { margin-bottom: 0; }
+.methodology__body strong { color: var(--olive-deep); font-weight: 600; }
+.methodology__body a { color: var(--olive); }
+.methodology__sources {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-soft);
+  font-family: var(--mono); font-size: 11px;
+  color: var(--ink-muted); line-height: 1.7;
+}
+
+/* ─────────────────  FOOTER  ───────────────── */
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 24px 28px;
+  text-align: center;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+}
+.site-footer a { color: var(--olive); text-decoration: none; }
+.site-footer a:hover { text-decoration: underline; }
+
+/* Error state */
+.error-state {
+  background: rgba(168,57,46,0.06);
+  border: 1px solid rgba(168,57,46,0.20);
+  padding: 24px 28px;
+  margin: 24px 28px;
+  max-width: 1480px;
+  font-size: 14px;
+  color: var(--alert);
+}
+
+/* Small details */
+.dim { color: var(--ink-muted); }
+.no-data {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--ink-soft); text-align: center;
+  padding: 24px 0;
+}
+
+/* Scrollbar (subtle) */
+.filters::-webkit-scrollbar { width: 6px; }
+.filters::-webkit-scrollbar-track { background: transparent; }
+.filters::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="https://palshield.org">
+      <span class="brand__mark">P</span>
+      <span class="brand__name">PAL<span>SHIELD</span></span>
+    </a>
+    <div class="header-meta">
+      <span class="header-meta__dot"></span>
+      <span id="updated-label">Tracker · loading</span>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero__label">West Bank · Civilian Harm Tracker</div>
+  <h1 class="hero__title">A geographic record of <em>settler violence and Israeli military operations</em> against Palestinian civilians.</h1>
+  <p class="hero__lede">Aggregated from independent conflict-monitoring datasets to support volunteer coordination, partner planning, and donor accountability. Every point on this map is a documented incident — not an estimate.</p>
+  <div class="hero__strip" id="hero-strip"></div>
+</section>
+
+<main class="main">
+  <aside class="filters" aria-label="Filters">
+    <div class="filters__header">
+      <h2 class="filters__title">Filters</h2>
+      <button class="filters__reset" id="reset-filters">Reset all</button>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-group__label">Date range</label>
+      <div class="year-range">
+        <div class="year-range__values">
+          <span>From <strong id="year-from-label">2016</strong></span>
+          <span>To <strong id="year-to-label">2026</strong></span>
+        </div>
+        <div class="year-range__sliders">
+          <div class="year-range__track"></div>
+          <div class="year-range__track year-range__track--active" id="year-track-active"></div>
+          <input type="range" id="year-from" min="2016" max="2026" value="2016" step="1">
+          <input type="range" id="year-to"   min="2016" max="2026" value="2026" step="1">
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-group__label">Map mode</label>
+      <div class="layer-toggle">
+        <button id="mode-heat"     class="is-active" data-mode="heat">Heatmap</button>
+        <button id="mode-clusters"                   data-mode="clusters">Incidents</button>
+      </div>
+      <div class="filter-group__hint">Heatmap shows density. Incidents shows clickable markers.</div>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-group__label">Perpetrator</label>
+      <div class="checklist" id="filter-perp"></div>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-group__label">Governorate</label>
+      <div class="checklist" id="filter-gov"></div>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-group__label">Data source</label>
+      <div class="checklist" id="filter-source"></div>
+    </div>
+
+    <div class="filter-group">
+      <label class="toggle">
+        <input type="checkbox" id="filter-fatal">
+        <span>Fatal incidents only</span>
+      </label>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="stats" id="stats-panel"></div>
+
+    <div class="map-wrap">
+      <div class="map" id="map"></div>
+      <div class="map-loading" id="map-loading">Indexing incidents…</div>
+      <div class="map-legend">
+        <div class="map-legend__title">Incident density</div>
+        <div class="map-legend__gradient"></div>
+        <div class="map-legend__scale">
+          <span>Lower</span>
+          <span>Higher</span>
+        </div>
+        <div class="map-legend__items" id="legend-perps"></div>
+      </div>
+    </div>
+
+    <section class="panel">
+      <div class="panel__header">
+        <h2 class="panel__title">Monthly trend</h2>
+        <span class="panel__sub" id="trend-sub">Filtered events · West Bank baseline</span>
+      </div>
+      <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel__header">
+        <h2 class="panel__title">Hotspots</h2>
+        <span class="panel__sub">Most-affected governorates and localities</span>
+      </div>
+      <div class="top-list">
+        <div class="top-list__col">
+          <h3>Top governorates</h3>
+          <div id="top-govs"></div>
+        </div>
+        <div class="top-list__col">
+          <h3>Top localities</h3>
+          <div id="top-locs"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="methodology">
+      <div>
+        <div class="methodology__heading">Methodology</div>
+        <div class="methodology__heading-sub">How to read this map</div>
+      </div>
+      <div class="methodology__body">
+        <p>This tracker aggregates <strong>incident-level records</strong> from independent monitoring datasets covering Israeli military operations and settler violence directed at Palestinian civilians in the West Bank, including East Jerusalem.</p>
+        <p>Records are filtered to retain only events where the perpetrator is identified as Israeli military, settlers, Israeli police, settlement emergency squads, or private Israeli security — and the affected party is Palestinian civilians. Incidents involving Palestinian armed groups, intra-Palestinian disputes, or protest activity are excluded; those belong to separate tracking efforts.</p>
+        <p>Coordinates from ACLED reflect the location where the incident occurred. Records from the Masafer Yatta documentation project use village-level coordinates with minimal jitter applied so co-located events render distinguishably on the map; these points should be read as "incident occurred in this village" rather than at an exact GPS coordinate.</p>
+        <p>Gaps and undercount are real. Many incidents — particularly in remote herding communities and during periods of communication blackout — are never documented. The numbers here are a <strong>floor, not a ceiling</strong>.</p>
+        <div class="methodology__sources" id="sources-list"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <span>© <span id="footer-year"></span> PALSHIELD · The Palestine Shield Initiative</span>
+  &nbsp;·&nbsp;
+  <a href="https://palshield.org">palshield.org</a>
+  &nbsp;·&nbsp;
+  <a href="https://www.zeffy.com/en-US/donation-form/support-palshield-protecting-palestinian-communities">Support our work</a>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+'use strict';
+
+/* ─────────────────────────────────────────────────────────────
+   DATA LOAD
+   ───────────────────────────────────────────────────────────── */
+const STATE = {
+  data: null,
+  filtered: [],
+  filters: {
+    yearFrom: 2016,
+    yearTo:   2026,
+    perps:    new Set([0,1,2,3,4]),
+    govs:     new Set(),
+    sources:  new Set([0,1]),
+    fatalOnly: false,
+  },
+  mapMode: 'heat',
+};
+
+let map, heatLayer, clusterLayer, trendChart;
+
+async function init() {
+  try {
+    const res = await fetch('incidents.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    STATE.data = await res.json();
+    STATE.filters.govs = new Set(STATE.data.governorates.map((_, i) => i));
+
+    document.getElementById('updated-label').textContent =
+      `Last indexed · ${STATE.data.generated}`;
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    buildFilters();
+    buildLegend();
+    buildSourcesList();
+    renderHeroStrip();
+    initMap();
+    initChart();
+    applyFilters();
+
+    document.getElementById('map-loading').classList.add('is-hidden');
+  } catch (err) {
+    console.error(err);
+    document.body.insertAdjacentHTML('afterbegin',
+      `<div class="error-state">Could not load <code>incidents.json</code>. Make sure the file is deployed in the same directory as this page. (${err.message})</div>`);
+    document.getElementById('map-loading').textContent = 'Data unavailable';
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FILTERS UI
+   ───────────────────────────────────────────────────────────── */
+function buildFilters() {
+  const d = STATE.data;
+
+  // Year range
+  const yfMin = parseInt(d.date_range.start.slice(0, 4));
+  const yfMax = parseInt(d.date_range.end.slice(0, 4));
+  const yFrom = document.getElementById('year-from');
+  const yTo = document.getElementById('year-to');
+  yFrom.min = yfMin; yFrom.max = yfMax; yFrom.value = yfMin;
+  yTo.min   = yfMin; yTo.max   = yfMax; yTo.value   = yfMax;
+  STATE.filters.yearFrom = yfMin;
+  STATE.filters.yearTo   = yfMax;
+
+  const updateYearRange = (e) => {
+    let lo = parseInt(yFrom.value), hi = parseInt(yTo.value);
+    if (lo > hi) {
+      if (e && e.target && e.target.id === 'year-from') {
+        hi = lo; yTo.value = hi;
+      } else {
+        lo = hi; yFrom.value = lo;
+      }
+    }
+    STATE.filters.yearFrom = lo;
+    STATE.filters.yearTo   = hi;
+    document.getElementById('year-from-label').textContent = lo;
+    document.getElementById('year-to-label').textContent   = hi;
+    updateYearTrack();
+    applyFilters();
+  };
+  yFrom.addEventListener('input', updateYearRange);
+  yTo.addEventListener('input', updateYearRange);
+
+  const updateYearTrack = () => {
+    const span = yfMax - yfMin;
+    const lo = ((STATE.filters.yearFrom - yfMin) / span) * 100;
+    const hi = ((STATE.filters.yearTo   - yfMin) / span) * 100;
+    const track = document.getElementById('year-track-active');
+    track.style.left  = lo + '%';
+    track.style.width = (hi - lo) + '%';
+  };
+  document.getElementById('year-from-label').textContent = yfMin;
+  document.getElementById('year-to-label').textContent   = yfMax;
+  updateYearTrack();
+
+  // Perpetrators
+  const perpEl = document.getElementById('filter-perp');
+  d.perpetrators.forEach((name, i) => {
+    const item = document.createElement('label');
+    item.className = 'checklist__item';
+    item.innerHTML = `
+      <input type="checkbox" checked data-perp="${i}">
+      <span>${name}</span>
+      <span class="checklist__count" id="count-perp-${i}">—</span>`;
+    item.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) STATE.filters.perps.add(i);
+      else STATE.filters.perps.delete(i);
+      applyFilters();
+    });
+    perpEl.appendChild(item);
+  });
+
+  // Governorates
+  const govEl = document.getElementById('filter-gov');
+  d.governorates.forEach((name, i) => {
+    const item = document.createElement('label');
+    item.className = 'checklist__item';
+    item.innerHTML = `
+      <input type="checkbox" checked data-gov="${i}">
+      <span>${name}</span>
+      <span class="checklist__count" id="count-gov-${i}">—</span>`;
+    item.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) STATE.filters.govs.add(i);
+      else STATE.filters.govs.delete(i);
+      applyFilters();
+    });
+    govEl.appendChild(item);
+  });
+
+  // Sources
+  const srcEl = document.getElementById('filter-source');
+  d.sources.forEach((s, i) => {
+    const item = document.createElement('label');
+    item.className = 'checklist__item';
+    item.innerHTML = `
+      <input type="checkbox" checked data-src="${i}">
+      <span>${s.code}</span>
+      <span class="checklist__count" id="count-src-${i}">—</span>`;
+    item.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) STATE.filters.sources.add(i);
+      else STATE.filters.sources.delete(i);
+      applyFilters();
+    });
+    srcEl.appendChild(item);
+  });
+
+  // Fatal-only
+  document.getElementById('filter-fatal').addEventListener('change', e => {
+    STATE.filters.fatalOnly = e.target.checked;
+    applyFilters();
+  });
+
+  // Reset
+  document.getElementById('reset-filters').addEventListener('click', () => {
+    yFrom.value = yfMin; yTo.value = yfMax;
+    STATE.filters.yearFrom = yfMin; STATE.filters.yearTo = yfMax;
+    document.getElementById('year-from-label').textContent = yfMin;
+    document.getElementById('year-to-label').textContent   = yfMax;
+    updateYearTrack();
+    STATE.filters.perps = new Set(d.perpetrators.map((_, i) => i));
+    STATE.filters.govs = new Set(d.governorates.map((_, i) => i));
+    STATE.filters.sources = new Set([0, 1]);
+    STATE.filters.fatalOnly = false;
+    document.querySelectorAll('.checklist__item input').forEach(c => c.checked = true);
+    document.getElementById('filter-fatal').checked = false;
+    applyFilters();
+  });
+
+  // Map mode toggle
+  document.querySelectorAll('.layer-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.layer-toggle button').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      STATE.mapMode = btn.dataset.mode;
+      renderMap();
+    });
+  });
+}
+
+function buildLegend() {
+  const el = document.getElementById('legend-perps');
+  const colors = ['#3D4F2E','#8B6F47','#6B7F58','#5C5E58','#8A8C84'];
+  STATE.data.perpetrators.forEach((name, i) => {
+    el.insertAdjacentHTML('beforeend',
+      `<div class="map-legend__item">
+         <span class="map-legend__dot" style="background:${colors[i]}"></span>
+         <span>${name}</span>
+       </div>`);
+  });
+}
+
+function buildSourcesList() {
+  const el = document.getElementById('sources-list');
+  el.innerHTML = '<strong>Sources:</strong> ' + STATE.data.sources.map(s =>
+    s.url ? `<a href="${s.url}" target="_blank" rel="noopener">${s.name}</a>` : s.name
+  ).join(' · ');
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MAP
+   ───────────────────────────────────────────────────────────── */
+function initMap() {
+  map = L.map('map', {
+    center: [31.95, 35.20],
+    zoom: 9,
+    minZoom: 8,
+    maxZoom: 16,
+    zoomControl: true,
+    attributionControl: true,
+    preferCanvas: true,
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> · <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd', maxZoom: 19,
+  }).addTo(map);
+
+  // Place labels on a separate layer
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd', maxZoom: 19, pane: 'shadowPane', opacity: 0.7,
+  }).addTo(map);
+}
+
+const PERP_COLORS = ['#3D4F2E','#8B6F47','#6B7F58','#5C5E58','#8A8C84'];
+
+function renderMap() {
+  if (heatLayer)    map.removeLayer(heatLayer);
+  if (clusterLayer) map.removeLayer(clusterLayer);
+
+  if (STATE.mapMode === 'heat') {
+    const points = STATE.filtered.map(r => [r.lat, r.lng, 1 + r.f * 1.5]);
+    heatLayer = L.heatLayer(points, {
+      radius: 18, blur: 22, maxZoom: 12, max: 6,
+      minOpacity: 0.32,
+      gradient: { 0.2:'#FFEDA0', 0.4:'#FED976', 0.55:'#FEB24C',
+                  0.7:'#FD8D3C', 0.85:'#FC4E2A', 1.0:'#B61E12' },
+    }).addTo(map);
+  } else {
+    clusterLayer = L.markerClusterGroup({
+      chunkedLoading: true,
+      maxClusterRadius: 45,
+      spiderfyOnMaxZoom: true,
+    });
+    STATE.filtered.forEach(r => {
+      const color = r.f > 0 ? '#A8392E' : PERP_COLORS[r.p];
+      const radius = r.f > 0 ? 6 + Math.min(r.f, 4) : 4;
+      const marker = L.circleMarker([r.lat, r.lng], {
+        radius, color: '#fff', weight: 1.2,
+        fillColor: color, fillOpacity: 0.85,
+      });
+      marker.bindPopup(() => popupHtml(r), { maxWidth: 360, minWidth: 280 });
+      clusterLayer.addLayer(marker);
+    });
+    map.addLayer(clusterLayer);
+  }
+}
+
+function popupHtml(r) {
+  const perp = STATE.data.perpetrators[r.p];
+  const src  = STATE.data.sources[r.s].code;
+  const fmtDate = new Date(r.d).toLocaleDateString('en-GB',
+    { year: 'numeric', month: 'short', day: 'numeric' });
+
+  let violations = '';
+  if (r.vt && r.vt.length) {
+    violations = `<div class="incident-popup__violations">
+      <strong>Violation types documented</strong>
+      <ul>${r.vt.map(i => `<li>${STATE.data.violation_types[i]}</li>`).join('')}</ul>
+    </div>`;
+  }
+
+  return `
+    <div class="incident-popup">
+      <div class="incident-popup__date">${fmtDate}</div>
+      <h3 class="incident-popup__title">${escapeHtml(r.l)}</h3>
+      <div class="incident-popup__meta">
+        <span class="tag tag--perp-${r.p}">${perp}</span>
+        ${r.f > 0 ? `<span class="tag tag--fatal">${r.f} killed</span>` : ''}
+        <span class="tag">${r.g}</span>
+        <span class="tag tag--source">${src}</span>
+      </div>
+      ${r.n ? `<p class="incident-popup__notes">${escapeHtml(r.n)}</p>` : ''}
+      ${violations}
+    </div>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FILTERING
+   ───────────────────────────────────────────────────────────── */
+function applyFilters() {
+  const f = STATE.filters;
+  const govNames = STATE.data.governorates;
+
+  STATE.filtered = STATE.data.incidents.filter(r => {
+    const y = parseInt(r.d.slice(0, 4));
+    if (y < f.yearFrom || y > f.yearTo) return false;
+    if (!f.perps.has(r.p)) return false;
+    if (!f.sources.has(r.s)) return false;
+    const gIdx = govNames.indexOf(r.g);
+    if (gIdx === -1 || !f.govs.has(gIdx)) return false;
+    if (f.fatalOnly && r.f === 0) return false;
+    return true;
+  });
+
+  updateCounts();
+  renderMap();
+  renderStats();
+  renderTrend();
+  renderTopLists();
+}
+
+function updateCounts() {
+  // Per-filter counts (against all data, partially filtered)
+  const f = STATE.filters;
+  const govNames = STATE.data.governorates;
+
+  // Count by perpetrator under current (non-perp) filters
+  STATE.data.perpetrators.forEach((_, i) => {
+    let n = 0;
+    for (const r of STATE.data.incidents) {
+      const y = parseInt(r.d.slice(0, 4));
+      if (y < f.yearFrom || y > f.yearTo) continue;
+      if (!f.sources.has(r.s)) continue;
+      const gIdx = govNames.indexOf(r.g);
+      if (gIdx === -1 || !f.govs.has(gIdx)) continue;
+      if (f.fatalOnly && r.f === 0) continue;
+      if (r.p === i) n++;
+    }
+    const el = document.getElementById('count-perp-' + i);
+    if (el) el.textContent = n.toLocaleString();
+  });
+
+  // Count by governorate
+  govNames.forEach((g, i) => {
+    let n = 0;
+    for (const r of STATE.data.incidents) {
+      const y = parseInt(r.d.slice(0, 4));
+      if (y < f.yearFrom || y > f.yearTo) continue;
+      if (!f.perps.has(r.p)) continue;
+      if (!f.sources.has(r.s)) continue;
+      if (f.fatalOnly && r.f === 0) continue;
+      if (r.g === g) n++;
+    }
+    const el = document.getElementById('count-gov-' + i);
+    if (el) el.textContent = n.toLocaleString();
+  });
+
+  // Count by source
+  STATE.data.sources.forEach((_, i) => {
+    let n = 0;
+    for (const r of STATE.data.incidents) {
+      const y = parseInt(r.d.slice(0, 4));
+      if (y < f.yearFrom || y > f.yearTo) continue;
+      if (!f.perps.has(r.p)) continue;
+      const gIdx = govNames.indexOf(r.g);
+      if (gIdx === -1 || !f.govs.has(gIdx)) continue;
+      if (f.fatalOnly && r.f === 0) continue;
+      if (r.s === i) n++;
+    }
+    const el = document.getElementById('count-src-' + i);
+    if (el) el.textContent = n.toLocaleString();
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────
+   STATS
+   ───────────────────────────────────────────────────────────── */
+function renderHeroStrip() {
+  const all = STATE.data.incidents;
+  document.getElementById('hero-strip').innerHTML = `
+    <div class="hero__stat">
+      <div class="hero__stat__label">Incidents indexed</div>
+      <div class="hero__stat__value">${all.length.toLocaleString()}</div>
+      <div class="hero__stat__sub">${STATE.data.date_range.start} → ${STATE.data.date_range.end}</div>
+    </div>
+    <div class="hero__stat">
+      <div class="hero__stat__label">Governorates covered</div>
+      <div class="hero__stat__value">${STATE.data.governorates.length}</div>
+      <div class="hero__stat__sub">West Bank · incl. East Jerusalem</div>
+    </div>
+    <div class="hero__stat">
+      <div class="hero__stat__label">Documented fatalities</div>
+      <div class="hero__stat__value hero__stat__value--alert">${all.reduce((a,r)=>a+r.f,0).toLocaleString()}</div>
+      <div class="hero__stat__sub">Civilians killed across all sources</div>
+    </div>
+    <div class="hero__stat">
+      <div class="hero__stat__label">Data sources</div>
+      <div class="hero__stat__value">${STATE.data.sources.length}</div>
+      <div class="hero__stat__sub">${STATE.data.sources.map(s=>s.code).join(' · ')}</div>
+    </div>`;
+}
+
+function renderStats() {
+  const rows = STATE.filtered;
+  const total = rows.length;
+  const fatalities = rows.reduce((a, r) => a + r.f, 0);
+  const fatalIncidents = rows.filter(r => r.f > 0).length;
+
+  const byGov = {};
+  rows.forEach(r => { byGov[r.g] = (byGov[r.g] || 0) + 1; });
+  const topGov = Object.entries(byGov).sort((a, b) => b[1] - a[1])[0];
+
+  const byPerp = {};
+  rows.forEach(r => { byPerp[r.p] = (byPerp[r.p] || 0) + 1; });
+  const topPerpEntry = Object.entries(byPerp).sort((a, b) => b[1] - a[1])[0];
+  const topPerp = topPerpEntry
+    ? `${STATE.data.perpetrators[topPerpEntry[0]]} (${topPerpEntry[1].toLocaleString()})`
+    : '—';
+
+  const yearSpan = STATE.filters.yearTo - STATE.filters.yearFrom + 1;
+  const perYear = yearSpan > 0 ? Math.round(total / yearSpan) : 0;
+
+  document.getElementById('stats-panel').innerHTML = `
+    <div class="stat">
+      <div class="stat__label">Filtered incidents</div>
+      <div class="stat__value">${total.toLocaleString()}</div>
+      <div class="stat__sub">${perYear.toLocaleString()} / year average in range</div>
+    </div>
+    <div class="stat">
+      <div class="stat__label">Fatalities in filter</div>
+      <div class="stat__value">${fatalities.toLocaleString()}</div>
+      <div class="stat__sub">${fatalIncidents.toLocaleString()} fatal incidents</div>
+    </div>
+    <div class="stat">
+      <div class="stat__label">Most-affected governorate</div>
+      <div class="stat__value">${topGov ? topGov[0] : '—'}</div>
+      <div class="stat__sub">${topGov ? topGov[1].toLocaleString() + ' incidents' : 'No data in filter'}</div>
+    </div>
+    <div class="stat">
+      <div class="stat__label">Dominant perpetrator</div>
+      <div class="stat__value" style="font-size:20px">${topPerp}</div>
+      <div class="stat__sub">By incident count in filter</div>
+    </div>`;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TREND CHART
+   ───────────────────────────────────────────────────────────── */
+function initChart() {
+  const ctx = document.getElementById('trend-chart').getContext('2d');
+  trendChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: [], datasets: [] },
+    options: {
+      maintainAspectRatio: false,
+      responsive: true,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: {
+          position: 'top', align: 'end',
+          labels: { font: { family: 'JetBrains Mono', size: 10 },
+                    color: '#5C5E58', boxWidth: 12, boxHeight: 4, padding: 14 },
+        },
+        tooltip: {
+          backgroundColor: '#1B1D1A',
+          titleFont: { family: 'JetBrains Mono', size: 11 },
+          bodyFont: { family: 'Public Sans', size: 12 },
+          padding: 10, borderColor: '#3D4F2E', borderWidth: 1,
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { family: 'JetBrains Mono', size: 10 },
+            color: '#5C5E58', maxRotation: 0, autoSkipPadding: 24,
+          },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#E8E2D3', drawBorder: false },
+          ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#5C5E58' },
+        },
+      },
+    },
+  });
+}
+
+function renderTrend() {
+  // Aggregate filtered incidents by month
+  const byMonth = {};
+  STATE.filtered.forEach(r => {
+    const ym = r.d.slice(0, 7);
+    byMonth[ym] = (byMonth[ym] || 0) + 1;
+  });
+
+  // Build full month range across filter window
+  const lo = STATE.filters.yearFrom, hi = STATE.filters.yearTo;
+  const labels = [];
+  const filteredCounts = [];
+  for (let y = lo; y <= hi; y++) {
+    for (let m = 1; m <= 12; m++) {
+      const ym = `${y}-${String(m).padStart(2, '0')}`;
+      labels.push(ym);
+      filteredCounts.push(byMonth[ym] || 0);
+    }
+  }
+
+  trendChart.data.labels = labels;
+  trendChart.data.datasets = [{
+    label: 'Filtered incidents',
+    data: filteredCounts,
+    backgroundColor: 'rgba(61,79,46,0.78)',
+    borderColor: 'rgba(61,79,46,1)',
+    borderWidth: 0,
+    barPercentage: 0.95,
+    categoryPercentage: 0.95,
+  }];
+  trendChart.update('none');
+
+  document.getElementById('trend-sub').textContent =
+    `${lo}–${hi} · ${STATE.filtered.length.toLocaleString()} incidents in filter`;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TOP LOCATIONS
+   ───────────────────────────────────────────────────────────── */
+function renderTopLists() {
+  const rows = STATE.filtered;
+  const byGov = {}, byLoc = {};
+  rows.forEach(r => {
+    byGov[r.g] = (byGov[r.g] || 0) + 1;
+    byLoc[r.l] = (byLoc[r.l] || 0) + 1;
+  });
+
+  const govEl = document.getElementById('top-govs');
+  const locEl = document.getElementById('top-locs');
+
+  const renderRows = (entries, el) => {
+    if (entries.length === 0) {
+      el.innerHTML = '<div class="no-data">No data in current filter</div>';
+      return;
+    }
+    const max = entries[0][1];
+    el.innerHTML = entries.map(([name, n]) => `
+      <div class="top-list__row">
+        <span>${escapeHtml(name)}</span>
+        <span class="top-list__row__bar">
+          <span class="top-list__row__bar__fill" style="width:${(n / max) * 100}%"></span>
+        </span>
+        <span class="top-list__row__count">${n.toLocaleString()}</span>
+      </div>`).join('');
+  };
+
+  renderRows(Object.entries(byGov).sort((a, b) => b[1] - a[1]).slice(0, 8), govEl);
+  renderRows(Object.entries(byLoc).sort((a, b) => b[1] - a[1]).slice(0, 8), locEl);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   GO
+   ───────────────────────────────────────────────────────────── */
+init();
+</script>
+</body>
+</html>
