@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>West Bank Civilian Harm Tracker — PALSHIELD</title>
+<title>West Bank Incident Tracker — PALSHIELD</title>
 <meta name="description" content="Geographic record of documented settler and Israeli military violence against Palestinian civilians in the West Bank.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,159 +16,49 @@
 
 <style>
 :root {
-  --bg:           #F5F1EA;
-  --surface:      #FFFFFF;
-  --surface-2:   #FAF6EE;
-  --ink:          #1B1D1A;
-  --ink-muted:    #5C5E58;
-  --ink-soft:     #8A8C84;
-  --border:       #D9D2C2;
-  --border-soft:  #E8E2D3;
-  --olive:        #3D4F2E;
-  --olive-deep:   #2A3820;
-  --olive-light:  #6B7F58;
-  --earth:        #8B6F47;
-  --alert:        #A8392E;
-  --alert-soft:   #C46A60;
+  --bg:           #09060A;
+  --surface:      #110910;
+  --surface-2:    #190D18;
+  --ink:          #EEE5EC;
+  --ink-muted:    #988090;
+  --ink-soft:     #5C4458;
+  --border:       #2C1028;
+  --border-soft:  #1F0B1C;
+  --primary:      #66023C;
+  --primary-light: #8C0F54;
+  --primary-bright: #B01868;
+  --primary-dim:  rgba(102,2,60,0.14);
+  --earth:        #7A5C40;
+  --alert:        #C03535;
+  --alert-soft:   #E04848;
 
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans:  'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --mono:  'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
-  --shadow-sm: 0 1px 2px rgba(27,29,26,0.04);
-  --shadow:    0 4px 16px rgba(27,29,26,0.06);
-  --shadow-lg: 0 16px 48px rgba(27,29,26,0.10);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow:    0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.7);
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+html, body { margin: 0; padding: 0; overflow-x: hidden; }
 body {
   font-family: var(--sans);
   font-size: 15px;
   line-height: 1.55;
   color: var(--ink);
   background: var(--bg);
-  background-image:
-    radial-gradient(circle at 20% 0%, rgba(61,79,46,0.04) 0%, transparent 50%),
-    radial-gradient(circle at 80% 100%, rgba(139,111,71,0.04) 0%, transparent 50%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─────────────────  HEADER  ───────────────── */
-.site-header {
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  position: sticky; top: 0; z-index: 1000;
-  backdrop-filter: blur(8px);
-  background: rgba(255,255,255,0.96);
-}
-.site-header__inner {
-  max-width: 1480px; margin: 0 auto;
-  padding: 14px 28px;
-  display: flex; align-items: center; justify-content: space-between; gap: 24px;
-}
-.brand {
-  display: flex; align-items: center; gap: 12px;
-  text-decoration: none; color: var(--ink);
-}
-.brand__mark {
-  width: 32px; height: 32px;
-  background: var(--olive);
-  display: grid; place-items: center;
-  color: #F5F1EA; font-family: var(--serif); font-weight: 600; font-size: 17px;
-  letter-spacing: 0.02em;
-  border-radius: 2px;
-}
-.brand__name {
-  font-family: var(--serif);
-  font-size: 20px; font-weight: 600; letter-spacing: 0.04em;
-}
-.brand__name span { color: var(--olive); }
-.header-meta {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ink-muted);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  display: flex; align-items: center; gap: 14px;
-}
-.header-meta__dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--olive-light);
-  box-shadow: 0 0 0 3px rgba(107,127,88,0.18);
-  animation: pulse 2.4s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
 
-/* ─────────────────  HERO  ───────────────── */
-.hero {
-  max-width: 1480px; margin: 0 auto;
-  padding: 48px 28px 24px;
-}
-.hero__label {
-  font-family: var(--mono);
-  font-size: 11px; letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--olive);
-  margin-bottom: 14px;
-}
-.hero__title {
-  font-family: var(--serif);
-  font-size: clamp(34px, 5vw, 56px);
-  font-weight: 500;
-  line-height: 1.05;
-  letter-spacing: -0.01em;
-  margin: 0 0 18px;
-  color: var(--ink);
-  max-width: 900px;
-}
-.hero__title em { font-style: italic; color: var(--olive); font-weight: 500; }
-.hero__lede {
-  font-family: var(--serif);
-  font-size: clamp(17px, 2vw, 21px);
-  font-style: italic;
-  color: var(--ink-muted);
-  max-width: 760px;
-  line-height: 1.5;
-  margin: 0 0 28px;
-}
-.hero__strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  margin-top: 32px;
-}
-.hero__stat {
-  background: var(--surface);
-  padding: 18px 20px;
-  display: flex; flex-direction: column; gap: 6px;
-}
-.hero__stat__label {
-  font-family: var(--mono);
-  font-size: 10px; letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-.hero__stat__value {
-  font-family: var(--serif);
-  font-size: 30px; font-weight: 500;
-  color: var(--ink); line-height: 1;
-}
-.hero__stat__value--alert { color: var(--alert); }
-.hero__stat__sub {
-  font-size: 12px; color: var(--ink-muted);
-}
 
 /* ─────────────────  MAIN GRID  ───────────────── */
 .main {
   max-width: 1480px; margin: 0 auto;
-  padding: 8px 28px 48px;
+  padding: 0px 20px 40px;
   display: grid;
   grid-template-columns: 280px 1fr;
   gap: 24px;
@@ -183,8 +73,8 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   padding: 22px 22px 28px;
-  position: sticky; top: 80px;
-  max-height: calc(100vh - 100px);
+  position: sticky; top: 0;
+  max-height: 100vh;
   overflow-y: auto;
   align-self: start;
 }
@@ -197,7 +87,7 @@ body {
   font-family: var(--mono);
   font-size: 11px; letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--olive);
+  color: var(--primary-bright);
   margin: 0;
 }
 .filters__reset {
@@ -207,7 +97,7 @@ body {
   text-decoration: underline; text-underline-offset: 3px;
   padding: 0;
 }
-.filters__reset:hover { color: var(--alert); }
+.filters__reset:hover { color: var(--alert-soft); }
 
 .filter-group { margin-bottom: 22px; }
 .filter-group__label {
@@ -232,7 +122,7 @@ body {
   font-family: var(--mono); font-size: 13px;
   color: var(--ink);
 }
-.year-range__values strong { color: var(--olive); font-weight: 600; }
+.year-range__values strong { color: var(--primary); font-weight: 600; }
 .year-range__sliders { position: relative; height: 32px; }
 .year-range__sliders input[type="range"] {
   position: absolute; left: 0; right: 0; top: 12px;
@@ -244,16 +134,16 @@ body {
 .year-range__sliders input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
   width: 16px; height: 16px; border-radius: 50%;
-  background: var(--olive);
+  background: var(--primary);
   border: 2px solid var(--surface);
-  box-shadow: 0 0 0 1px var(--olive);
+  box-shadow: 0 0 0 1px var(--primary);
   cursor: pointer; pointer-events: auto;
   margin-top: -6px;
 }
 .year-range__sliders input[type="range"]::-moz-range-thumb {
   width: 16px; height: 16px; border-radius: 50%;
-  background: var(--olive); border: 2px solid var(--surface);
-  box-shadow: 0 0 0 1px var(--olive);
+  background: var(--primary); border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--primary);
   cursor: pointer; pointer-events: auto;
 }
 .year-range__track {
@@ -261,7 +151,7 @@ body {
   height: 2px; background: var(--border);
 }
 .year-range__track--active {
-  background: var(--olive);
+  background: var(--primary);
 }
 
 /* Checkboxes */
@@ -286,8 +176,8 @@ body {
   transition: all 0.15s;
 }
 .checklist__item input:checked {
-  background: var(--olive);
-  border-color: var(--olive);
+  background: var(--primary);
+  border-color: var(--primary);
 }
 .checklist__item input:checked::after {
   content: '';
@@ -298,7 +188,7 @@ body {
   border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg);
 }
-.checklist__item:hover input:not(:checked) { border-color: var(--olive-light); }
+.checklist__item:hover input:not(:checked) { border-color: var(--primary-bright); }
 .checklist__count {
   margin-left: auto;
   font-family: var(--mono); font-size: 11px;
@@ -356,7 +246,7 @@ body {
 }
 .layer-toggle button + button { border-left: 1px solid var(--border); }
 .layer-toggle button.is-active {
-  background: var(--olive); color: #F5F1EA;
+  background: var(--primary); color: var(--ink);
 }
 .layer-toggle button:hover:not(.is-active) {
   background: var(--surface-2); color: var(--ink);
@@ -382,7 +272,7 @@ body {
 .map-legend {
   position: absolute;
   bottom: 18px; left: 18px;
-  background: rgba(255,255,255,0.94);
+  background: rgba(19,23,16,0.95);
   backdrop-filter: blur(6px);
   border: 1px solid var(--border);
   padding: 12px 14px;
@@ -430,10 +320,10 @@ body {
 .map-loading {
   position: absolute; inset: 0;
   display: grid; place-items: center;
-  background: var(--surface-2);
+  background: var(--surface);
   z-index: 600;
   font-family: var(--mono); font-size: 12px;
-  color: var(--ink-muted);
+  color: var(--primary-bright);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -442,15 +332,15 @@ body {
 /* Popup (Leaflet override) */
 .leaflet-popup-content-wrapper {
   border-radius: 0 !important;
-  background: var(--surface) !important;
+  background: #1A2014 !important;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-lg) !important;
 }
-.leaflet-popup-tip { background: var(--surface) !important; }
-.leaflet-popup-content { margin: 16px 18px !important; font-family: var(--sans); }
+.leaflet-popup-tip { background: #1A2014 !important; }
+.leaflet-popup-content { margin: 16px 18px !important; font-family: var(--sans); color: var(--ink); }
 .incident-popup__date {
   font-family: var(--mono); font-size: 11px;
-  color: var(--olive); letter-spacing: 0.08em;
+  color: var(--primary); letter-spacing: 0.08em;
   margin-bottom: 4px;
 }
 .incident-popup__title {
@@ -466,14 +356,14 @@ body {
   letter-spacing: 0.1em; text-transform: uppercase;
   padding: 3px 7px;
   background: var(--surface-2);
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border);
   color: var(--ink-muted);
 }
-.tag--perp-0 { background: rgba(61,79,46,0.10); color: var(--olive-deep); border-color: rgba(61,79,46,0.20); }
-.tag--perp-1 { background: rgba(139,111,71,0.12); color: var(--earth); border-color: rgba(139,111,71,0.22); }
-.tag--perp-2 { background: rgba(107,127,88,0.12); color: var(--olive-light); border-color: rgba(107,127,88,0.22); }
-.tag--perp-3, .tag--perp-4 { background: rgba(92,94,88,0.10); color: var(--ink-muted); }
-.tag--fatal { background: rgba(168,57,46,0.10); color: var(--alert); border-color: rgba(168,57,46,0.22); }
+.tag--perp-0 { background: rgba(92,138,56,0.15); color: #B01868; border-color: rgba(102,2,60,0.25); }
+.tag--perp-1 { background: rgba(160,120,72,0.15); color: #C89558; border-color: rgba(232,160,64,0.25); }
+.tag--perp-2 { background: rgba(102,2,60,0.12); color: var(--primary-bright); border-color: rgba(102,2,60,0.20); }
+.tag--perp-3, .tag--perp-4 { background: rgba(143,154,134,0.10); color: var(--ink-muted); }
+.tag--fatal { background: rgba(192,57,43,0.15); color: #E05545; border-color: rgba(192,53,53,0.25); }
 .tag--source { background: var(--surface); }
 .incident-popup__notes {
   font-size: 12.5px; line-height: 1.5;
@@ -494,12 +384,12 @@ body {
 }
 
 /* Cluster icon override */
-.marker-cluster-small div { background-color: rgba(61,79,46,0.7) !important; color: #fff !important; }
-.marker-cluster-small { background-color: rgba(61,79,46,0.25) !important; }
-.marker-cluster-medium div { background-color: rgba(139,111,71,0.75) !important; color: #fff !important; }
-.marker-cluster-medium { background-color: rgba(139,111,71,0.25) !important; }
-.marker-cluster-large div { background-color: rgba(168,57,46,0.85) !important; color: #fff !important; }
-.marker-cluster-large { background-color: rgba(168,57,46,0.25) !important; }
+.marker-cluster-small div { background-color: rgba(102,2,60,0.85) !important; color: #EEE9E0 !important; }
+.marker-cluster-small { background-color: rgba(102,2,60,0.25) !important; }
+.marker-cluster-medium div { background-color: rgba(232,160,64,0.85) !important; color: #EEE9E0 !important; }
+.marker-cluster-medium { background-color: rgba(232,160,64,0.25) !important; }
+.marker-cluster-large div { background-color: rgba(192,53,53,0.90) !important; color: #EEE9E0 !important; }
+.marker-cluster-large { background-color: rgba(192,53,53,0.25) !important; }
 .marker-cluster div { font-family: var(--mono); font-weight: 500; }
 
 /* ─────────────────  STATS PANEL  ───────────────── */
@@ -580,7 +470,7 @@ body {
 }
 .top-list__row__bar__fill {
   position: absolute; left: 0; top: 0; height: 100%;
-  background: var(--olive);
+  background: var(--primary);
 }
 .top-list__row__count {
   font-family: var(--mono); font-size: 12px;
@@ -593,94 +483,78 @@ body {
   grid-template-columns: 220px 1fr;
   gap: 32px;
   padding: 32px 28px;
-  background: var(--surface-2);
+  background: var(--surface);
   border: 1px solid var(--border);
 }
 @media (max-width: 700px) { .methodology { grid-template-columns: 1fr; } }
 .methodology__heading {
   font-family: var(--serif); font-size: 24px;
   font-weight: 500; margin: 0;
-  color: var(--olive-deep);
+  color: var(--primary-bright);
 }
 .methodology__heading-sub {
   font-family: var(--mono); font-size: 10px;
   letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--ink-muted); margin-top: 4px;
+  color: var(--ink-soft); margin-top: 4px;
 }
 .methodology__body {
   font-size: 13.5px; line-height: 1.65;
-  color: var(--ink);
+  color: var(--ink-muted);
 }
 .methodology__body p { margin: 0 0 12px; }
 .methodology__body p:last-child { margin-bottom: 0; }
-.methodology__body strong { color: var(--olive-deep); font-weight: 600; }
-.methodology__body a { color: var(--olive); }
+.methodology__body strong { color: var(--ink); font-weight: 600; }
+.methodology__body a { color: var(--primary-bright); }
 .methodology__sources {
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--border);
   font-family: var(--mono); font-size: 11px;
-  color: var(--ink-muted); line-height: 1.7;
+  color: var(--ink-soft); line-height: 1.7;
 }
 
-/* ─────────────────  FOOTER  ───────────────── */
-.site-footer {
-  border-top: 1px solid var(--border);
-  padding: 24px 28px;
-  text-align: center;
-  font-family: var(--mono); font-size: 11px;
-  letter-spacing: 0.05em;
+
+/* ─────────────────  EMBED STATUS BAR  ───────────────── */
+.embed-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-soft);
+  flex-wrap: wrap; gap: 8px;
+}
+.embed-bar__live {
+  display: flex; align-items: center; gap: 7px;
   color: var(--ink-muted);
 }
-.site-footer a { color: var(--olive); text-decoration: none; }
-.site-footer a:hover { text-decoration: underline; }
-
-/* Error state */
-.error-state {
-  background: rgba(168,57,46,0.06);
-  border: 1px solid rgba(168,57,46,0.20);
-  padding: 24px 28px;
-  margin: 24px 28px;
-  max-width: 1480px;
-  font-size: 14px;
-  color: var(--alert);
+.embed-bar__dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--primary-bright);
+  box-shadow: 0 0 0 3px rgba(176,24,104,0.15);
+  animation: pulse 2.4s ease-in-out infinite;
 }
+.embed-bar__link { color: var(--primary-bright); text-decoration: none; }
+.embed-bar__link:hover { text-decoration: underline; }
 
-/* Small details */
-.dim { color: var(--ink-muted); }
-.no-data {
-  font-family: var(--mono); font-size: 11px;
-  color: var(--ink-soft); text-align: center;
-  padding: 24px 0;
-}
-
-/* Scrollbar (subtle) */
-.filters::-webkit-scrollbar { width: 6px; }
-.filters::-webkit-scrollbar-track { background: transparent; }
-.filters::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 </style>
 </head>
 <body>
 
-<header class="site-header">
-  <div class="site-header__inner">
-    <a class="brand" href="https://palshield.org">
-      <span class="brand__mark">P</span>
-      <span class="brand__name">PAL<span>SHIELD</span></span>
-    </a>
-    <div class="header-meta">
-      <span class="header-meta__dot"></span>
-      <span id="updated-label">Tracker · loading</span>
-    </div>
+<div class="embed-bar">
+  <div class="embed-bar__live">
+    <span class="embed-bar__dot"></span>
+    <span id="updated-label">West Bank Civilian Harm Tracker</span>
   </div>
-</header>
+  <span>
+    <a class="embed-bar__link" href="https://palshield.org" target="_blank" rel="noopener">palshield.org</a>
+    &nbsp;·&nbsp;
+    <a class="embed-bar__link" href="https://www.zeffy.com/en-US/donation-form/support-palshield-protecting-palestinian-communities" target="_blank" rel="noopener">Donate</a>
+  </span>
+</div>
 
-<section class="hero">
-  <div class="hero__label">West Bank · Settler Violence Tracker</div>
-  <h1 class="hero__title">A geographic record of <em>Israeli settler violence</em> against Palestinian communities.</h1>
-  <p class="hero__lede">Aggregated from independent conflict-monitoring datasets to support volunteer coordination and humanitarian project planning. Every point on this map is a documented incident — not an estimate.</p>
-  <div class="hero__strip" id="hero-strip"></div>
-</section>
+
 
 <main class="main">
   <aside class="filters" aria-label="Filters">
@@ -785,8 +659,7 @@ body {
         <div class="methodology__heading-sub">How to read this map</div>
       </div>
       <div class="methodology__body">
-        <p>This tracker aggregates <strong>incident-level records</strong> from independent monitoring datasets covering Israeli military operations and settler violence directed at Palestinian civilians in the West Bank, including East Jerusalem.</p>
-        <p>Coordinates from ACLED reflect the location where the incident occurred. Records from the Masafer Yatta documentation project use village-level coordinates with minimal jitter applied so co-located events render distinguishably on the map</p>
+        <p>This tracker aggregates <strong>incident-level records</strong> from independent monitoring datasets covering settler violence (along with Israeli military collaberation) directed at Palestinian civilians in the West Bank, including East Jerusalem.</p>
         <p>Gaps and undercount are real. Many incidents — particularly in remote herding communities and during periods of communication blackout — are never documented. The numbers here are a <strong>floor, not a ceiling</strong>.</p>
         <div class="methodology__sources" id="sources-list"></div>
       </div>
@@ -794,13 +667,6 @@ body {
   </div>
 </main>
 
-<footer class="site-footer">
-  <span>© <span id="footer-year"></span> PALSHIELD · The Palestine Shield Initiative</span>
-  &nbsp;·&nbsp;
-  <a href="https://palshield.org">palshield.org</a>
-  &nbsp;·&nbsp;
-  <a href="https://www.zeffy.com/en-US/donation-form/support-palshield-protecting-palestinian-communities">Support our work</a>
-</footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -838,12 +704,11 @@ async function init() {
 
     document.getElementById('updated-label').textContent =
       `Last indexed · ${STATE.data.generated}`;
-    document.getElementById('footer-year').textContent = new Date().getFullYear();
+    const fyEl = document.getElementById('footer-year'); if (fyEl) fyEl.textContent = new Date().getFullYear();
 
     buildFilters();
     buildLegend();
     buildSourcesList();
-    renderHeroStrip();
     initMap();
     initChart();
     applyFilters();
@@ -990,7 +855,7 @@ function buildFilters() {
 
 function buildLegend() {
   const el = document.getElementById('legend-perps');
-  const colors = ['#3D4F2E','#8B6F47','#6B7F58','#5C5E58','#8A8C84'];
+  const colors = ['#E05050','#E8A040','#5B9BD5','#9B6FD0','#8A8A8A'];
   STATE.data.perpetrators.forEach((name, i) => {
     el.insertAdjacentHTML('beforeend',
       `<div class="map-legend__item">
@@ -1021,18 +886,18 @@ function initMap() {
     preferCanvas: true,
   });
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> · <a href="https://carto.com/attributions">CARTO</a>',
     subdomains: 'abcd', maxZoom: 19,
   }).addTo(map);
 
   // Place labels on a separate layer
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 19, pane: 'shadowPane', opacity: 0.7,
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd', maxZoom: 19, pane: 'shadowPane', opacity: 0.85,
   }).addTo(map);
 }
 
-const PERP_COLORS = ['#3D4F2E','#8B6F47','#6B7F58','#5C5E58','#8A8C84'];
+const PERP_COLORS = ['#E05050','#E8A040','#5B9BD5','#9B6FD0','#8A8A8A'];
 
 function renderMap() {
   if (heatLayer)    map.removeLayer(heatLayer);
@@ -1053,7 +918,7 @@ function renderMap() {
       spiderfyOnMaxZoom: true,
     });
     STATE.filtered.forEach(r => {
-      const color = r.f > 0 ? '#A8392E' : PERP_COLORS[r.p];
+      const color = r.f > 0 ? '#FF3333' : PERP_COLORS[r.p];
       const radius = r.f > 0 ? 6 + Math.min(r.f, 4) : 4;
       const marker = L.circleMarker([r.lat, r.lng], {
         radius, color: '#fff', weight: 1.2,
@@ -1181,30 +1046,6 @@ function updateCounts() {
 /* ─────────────────────────────────────────────────────────────
    STATS
    ───────────────────────────────────────────────────────────── */
-function renderHeroStrip() {
-  const all = STATE.data.incidents;
-  document.getElementById('hero-strip').innerHTML = `
-    <div class="hero__stat">
-      <div class="hero__stat__label">Incidents indexed</div>
-      <div class="hero__stat__value">${all.length.toLocaleString()}</div>
-      <div class="hero__stat__sub">${STATE.data.date_range.start} → ${STATE.data.date_range.end}</div>
-    </div>
-    <div class="hero__stat">
-      <div class="hero__stat__label">Governorates covered</div>
-      <div class="hero__stat__value">${STATE.data.governorates.length}</div>
-      <div class="hero__stat__sub">West Bank · incl. East Jerusalem</div>
-    </div>
-    <div class="hero__stat">
-      <div class="hero__stat__label">Documented fatalities</div>
-      <div class="hero__stat__value hero__stat__value--alert">${all.reduce((a,r)=>a+r.f,0).toLocaleString()}</div>
-      <div class="hero__stat__sub">Civilians killed across all sources</div>
-    </div>
-    <div class="hero__stat">
-      <div class="hero__stat__label">Data sources</div>
-      <div class="hero__stat__value">${STATE.data.sources.length}</div>
-      <div class="hero__stat__sub">${STATE.data.sources.map(s=>s.code).join(' · ')}</div>
-    </div>`;
-}
 
 function renderStats() {
   const rows = STATE.filtered;
@@ -1265,13 +1106,15 @@ function initChart() {
         legend: {
           position: 'top', align: 'end',
           labels: { font: { family: 'JetBrains Mono', size: 10 },
-                    color: '#5C5E58', boxWidth: 12, boxHeight: 4, padding: 14 },
+                    color: '#8F9A86', boxWidth: 12, boxHeight: 4, padding: 14 },
         },
         tooltip: {
-          backgroundColor: '#1B1D1A',
+          backgroundColor: '#1A2014',
           titleFont: { family: 'JetBrains Mono', size: 11 },
           bodyFont: { family: 'Public Sans', size: 12 },
-          padding: 10, borderColor: '#3D4F2E', borderWidth: 1,
+          titleColor: '#B01868',
+          bodyColor: '#EEE9E0',
+          padding: 10, borderColor: '#66023C', borderWidth: 1,
         },
       },
       scales: {
@@ -1279,13 +1122,15 @@ function initChart() {
           grid: { display: false },
           ticks: {
             font: { family: 'JetBrains Mono', size: 10 },
-            color: '#5C5E58', maxRotation: 0, autoSkipPadding: 24,
+            color: '#596153', maxRotation: 0, autoSkipPadding: 24,
           },
+          border: { color: '#232C1E' },
         },
         y: {
           beginAtZero: true,
-          grid: { color: '#E8E2D3', drawBorder: false },
-          ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#5C5E58' },
+          grid: { color: '#1C2318', drawBorder: false },
+          ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#596153' },
+          border: { color: '#232C1E' },
         },
       },
     },
@@ -1316,8 +1161,8 @@ function renderTrend() {
   trendChart.data.datasets = [{
     label: 'Filtered incidents',
     data: filteredCounts,
-    backgroundColor: 'rgba(61,79,46,0.78)',
-    borderColor: 'rgba(61,79,46,1)',
+    backgroundColor: 'rgba(102,2,60,0.80)',
+    borderColor: 'rgba(176,24,104,0.9)',
     borderWidth: 0,
     barPercentage: 0.95,
     categoryPercentage: 0.95,
