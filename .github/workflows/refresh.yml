@@ -30,7 +30,7 @@ jobs:
           ACLED_PASSWORD: ${{ secrets.ACLED_PASSWORD }}
         run: python refresh.py
 
-            - name: Commit and push if changed
+      - name: Commit and push if changed
         run: |
           git config user.name  "palshield-bot"
           git config user.email "bot@palshield.org"
