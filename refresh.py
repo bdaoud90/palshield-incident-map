@@ -97,10 +97,12 @@ def get_access_token(email: str, password: str) -> str:
     return resp.json()["access_token"]
 
 
-def fetch_acled(token: str) -> list[dict]:
-    """Fetch all West Bank events since 2016, paginated."""
+def fetch_acled(token: str, email: str, password: str) -> list[dict]:
+    """Fetch all West Bank events since 2016, paginated with token refresh."""
     rows = []
     page = 1
+    current_token = token
+    
     while True:
         params = {
             "_format":     "json",
@@ -112,8 +114,17 @@ def fetch_acled(token: str) -> list[dict]:
             "page":        page,
         }
         r = requests.get(API_URL, params=params, headers={
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {current_token}",
         }, timeout=60)
+        
+        # If token expired, refresh and retry
+        if r.status_code == 401:
+            print("  ⚠ Token expired, refreshing…", flush=True)
+            current_token = get_access_token(email, password)
+            r = requests.get(API_URL, params=params, headers={
+                "Authorization": f"Bearer {current_token}",
+            }, timeout=60)
+        
         r.raise_for_status()
         data = r.json()
         if data.get("success") is False:
