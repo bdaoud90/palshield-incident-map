@@ -188,7 +188,7 @@ def main() -> int:
     print("  ✓ token acquired", flush=True)
 
     print("→ Fetching West Bank events…", flush=True)
-    raw = fetch_acled(token, email, password)
+    raw = fetch_acled(token)
     print(f"  ✓ {len(raw):,} raw rows", flush=True)
 
     print("→ Filtering and shaping…", flush=True)
