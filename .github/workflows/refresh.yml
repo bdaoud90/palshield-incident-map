@@ -30,7 +30,7 @@ jobs:
           ACLED_PASSWORD: ${{ secrets.ACLED_PASSWORD }}
         run: python refresh.py
 
-      - name: Commit and push if changed
+            - name: Commit and push if changed
         run: |
           git config user.name  "palshield-bot"
           git config user.email "bot@palshield.org"
@@ -39,7 +39,6 @@ jobs:
             echo "No data changes — skipping commit."
           else
             git commit -m "data: refresh $(date -u +%Y-%m-%d)"
-            git fetch origin main
-            git rebase origin/main
+            git pull --rebase origin main
             git push origin main
           fi
