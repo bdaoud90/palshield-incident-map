@@ -39,6 +39,16 @@ jobs:
             echo "No data changes — skipping commit."
           else
             git commit -m "data: refresh $(date -u +%Y-%m-%d)"
-            git pull --rebase origin main
-            git push origin main
+            
+            # Retry logic for push to handle concurrent runs
+            for attempt in {1..3}; do
+              git pull --rebase origin main && git push origin main && break
+              if [ $attempt -lt 3 ]; then
+                echo "Push failed, retrying in 5 seconds..."
+                sleep 5
+              else
+                echo "Push failed after 3 attempts"
+                exit 1
+              fi
+            done
           fi
