@@ -39,5 +39,7 @@ jobs:
             echo "No data changes — skipping commit."
           else
             git commit -m "data: refresh $(date -u +%Y-%m-%d)"
-            git push
+            git fetch origin main
+            git rebase origin/main
+            git push origin main
           fi
