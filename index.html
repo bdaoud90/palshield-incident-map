@@ -146,6 +146,12 @@ body {
   box-shadow: 0 0 0 1px var(--primary);
   cursor: pointer; pointer-events: auto;
 }
+.year-range__sliders input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--primary-bright);
+}
+.year-range__sliders input[type="range"]:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--primary-bright);
+}
 .year-range__track {
   position: absolute; left: 0; right: 0; top: 14px;
   height: 2px; background: var(--border);
@@ -188,6 +194,7 @@ body {
   border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg);
 }
+.checklist__item input:focus-visible { outline: 2px solid var(--primary-bright); outline-offset: 2px; }
 .checklist__item:hover input:not(:checked) { border-color: var(--primary-bright); }
 .checklist__count {
   margin-left: auto;
@@ -227,6 +234,7 @@ body {
 .toggle input:checked::after {
   transform: translateX(14px);
 }
+.toggle input:focus-visible { outline: 2px solid var(--primary-bright); outline-offset: 2px; }
 
 /* Map layer toggle */
 .layer-toggle {
@@ -538,6 +546,44 @@ body {
 .embed-bar__link { color: var(--primary-bright); text-decoration: none; }
 .embed-bar__link:hover { text-decoration: underline; }
 
+/* Stale-data warning state (set by JS when the dataset is >3 days old) */
+.embed-bar__live.is-stale { color: var(--alert-soft); }
+.embed-bar__live.is-stale .embed-bar__dot {
+  background: var(--alert);
+  box-shadow: 0 0 0 3px rgba(192,53,53,0.18);
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* ─────────────────  ERROR / EMPTY STATES  ───────────────── */
+.error-state {
+  margin: 16px 20px;
+  padding: 14px 18px;
+  background: rgba(192,53,53,0.12);
+  border: 1px solid var(--alert);
+  color: var(--alert-soft);
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: var(--sans);
+}
+.error-state code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--surface-2);
+  padding: 1px 5px;
+}
+.no-data {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-style: italic;
+  padding: 10px 0;
+}
+
 </style>
 </head>
 <body>
@@ -573,8 +619,8 @@ body {
         <div class="year-range__sliders">
           <div class="year-range__track"></div>
           <div class="year-range__track year-range__track--active" id="year-track-active"></div>
-          <input type="range" id="year-from" min="2016" max="2026" value="2016" step="1">
-          <input type="range" id="year-to"   min="2016" max="2026" value="2026" step="1">
+          <input type="range" id="year-from" min="2016" max="2026" value="2016" step="1" aria-label="From year">
+          <input type="range" id="year-to"   min="2016" max="2026" value="2026" step="1" aria-label="To year">
         </div>
       </div>
     </div>
@@ -659,7 +705,7 @@ body {
         <div class="methodology__heading-sub">How to read this map</div>
       </div>
       <div class="methodology__body">
-        <p>This tracker aggregates <strong>incident-level records</strong> from independent monitoring datasets covering settler violence (along with Israeli military collaberation) directed at Palestinian civilians in the West Bank, including East Jerusalem.</p>
+        <p>This tracker aggregates <strong>incident-level records</strong> from independent monitoring datasets covering settler violence (along with Israeli military collaboration) directed at Palestinian civilians in the West Bank, including East Jerusalem.</p>
         <p>Gaps and undercount are real. Many incidents — particularly in remote herding communities and during periods of communication blackout — are never documented. The numbers here are a <strong>floor, not a ceiling</strong>.</p>
         <div class="methodology__sources" id="sources-list"></div>
       </div>
@@ -677,34 +723,72 @@ body {
 'use strict';
 
 /* ─────────────────────────────────────────────────────────────
-   DATA LOAD
+   STATE
    ───────────────────────────────────────────────────────────── */
 const STATE = {
   data: null,
   filtered: [],
+  govIndex: null,            // Map<governorate name, index> built at load
   filters: {
     yearFrom: 2016,
     yearTo:   2026,
-    perps:    new Set([0,1,2,3,4]),
-    govs:     new Set(),
-    sources:  new Set([0,1]),
+    perps:    new Set(),     // populated from data in init()
+    govs:     new Set(),     // populated from data in init()
+    sources:  new Set(),     // populated from data in init()
     fatalOnly: false,
   },
   mapMode: 'heat',
 };
 
+// Single source of truth for perpetrator colours (legend + markers).
+const PERP_COLORS = ['#E05050','#E8A040','#5B9BD5','#9B6FD0','#8A8A8A'];
+
 let map, heatLayer, clusterLayer, trendChart;
 
+// Debounced filter apply — used by the continuous year slider so dragging
+// doesn't trigger a full map+chart+stats rebuild on every pixel.
+let _filterTimer = null;
+function applyFiltersDebounced(delay = 120) {
+  clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(applyFilters, delay);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DATA LOAD
+   ───────────────────────────────────────────────────────────── */
 async function init() {
   try {
     const res = await fetch('incidents.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     STATE.data = await res.json();
-    STATE.filters.govs = new Set(STATE.data.governorates.map((_, i) => i));
 
+    // Normalize once at load:
+    //  • _y  = integer year (avoids parseInt(slice) on every filter pass)
+    //  • _gi = governorate index (avoids O(n) indexOf on every filter pass)
+    const govIndex = new Map(STATE.data.governorates.map((name, i) => [name, i]));
+    STATE.govIndex = govIndex;
+    STATE.data.incidents.forEach(r => {
+      r._y  = parseInt(r.d.slice(0, 4), 10);
+      r._gi = govIndex.has(r.g) ? govIndex.get(r.g) : -1;
+    });
+
+    // Derive every filter set from the data itself, so adding a perpetrator,
+    // governorate, or source can never silently desync the checkboxes (all
+    // rendered checked) from the active filter (previously hardcoded indices).
+    STATE.filters.govs    = new Set(STATE.data.governorates.map((_, i) => i));
+    STATE.filters.perps   = new Set(STATE.data.perpetrators.map((_, i) => i));
+    STATE.filters.sources = new Set(STATE.data.sources.map((_, i) => i));
+
+    // Freshness signal.
     document.getElementById('updated-label').textContent =
       `Last indexed · ${STATE.data.generated}`;
-    const fyEl = document.getElementById('footer-year'); if (fyEl) fyEl.textContent = new Date().getFullYear();
+    const gen = new Date(STATE.data.generated);
+    if (!isNaN(gen) && (Date.now() - gen.getTime()) / 86400000 > 3) {
+      const live = document.querySelector('.embed-bar__live');
+      if (live) live.classList.add('is-stale');
+      document.getElementById('updated-label').textContent =
+        `Data may be stale · last indexed ${STATE.data.generated}`;
+    }
 
     buildFilters();
     buildLegend();
@@ -717,8 +801,9 @@ async function init() {
   } catch (err) {
     console.error(err);
     document.body.insertAdjacentHTML('afterbegin',
-      `<div class="error-state">Could not load <code>incidents.json</code>. Make sure the file is deployed in the same directory as this page. (${err.message})</div>`);
-    document.getElementById('map-loading').textContent = 'Data unavailable';
+      `<div class="error-state">Could not load <code>incidents.json</code>. Make sure the file is deployed in the same directory as this page. (${escapeHtml(err.message)})</div>`);
+    const ml = document.getElementById('map-loading');
+    if (ml) ml.textContent = 'Data unavailable';
   }
 }
 
@@ -752,7 +837,7 @@ function buildFilters() {
     document.getElementById('year-from-label').textContent = lo;
     document.getElementById('year-to-label').textContent   = hi;
     updateYearTrack();
-    applyFilters();
+    applyFiltersDebounced();
   };
   yFrom.addEventListener('input', updateYearRange);
   yTo.addEventListener('input', updateYearRange);
@@ -833,9 +918,9 @@ function buildFilters() {
     document.getElementById('year-from-label').textContent = yfMin;
     document.getElementById('year-to-label').textContent   = yfMax;
     updateYearTrack();
-    STATE.filters.perps = new Set(d.perpetrators.map((_, i) => i));
-    STATE.filters.govs = new Set(d.governorates.map((_, i) => i));
-    STATE.filters.sources = new Set([0, 1]);
+    STATE.filters.perps   = new Set(d.perpetrators.map((_, i) => i));
+    STATE.filters.govs    = new Set(d.governorates.map((_, i) => i));
+    STATE.filters.sources = new Set(d.sources.map((_, i) => i));
     STATE.filters.fatalOnly = false;
     document.querySelectorAll('.checklist__item input').forEach(c => c.checked = true);
     document.getElementById('filter-fatal').checked = false;
@@ -855,11 +940,10 @@ function buildFilters() {
 
 function buildLegend() {
   const el = document.getElementById('legend-perps');
-  const colors = ['#E05050','#E8A040','#5B9BD5','#9B6FD0','#8A8A8A'];
   STATE.data.perpetrators.forEach((name, i) => {
     el.insertAdjacentHTML('beforeend',
       `<div class="map-legend__item">
-         <span class="map-legend__dot" style="background:${colors[i]}"></span>
+         <span class="map-legend__dot" style="background:${PERP_COLORS[i] || '#8A8A8A'}"></span>
          <span>${name}</span>
        </div>`);
   });
@@ -897,8 +981,6 @@ function initMap() {
   }).addTo(map);
 }
 
-const PERP_COLORS = ['#E05050','#E8A040','#5B9BD5','#9B6FD0','#8A8A8A'];
-
 function renderMap() {
   if (heatLayer)    map.removeLayer(heatLayer);
   if (clusterLayer) map.removeLayer(clusterLayer);
@@ -918,7 +1000,7 @@ function renderMap() {
       spiderfyOnMaxZoom: true,
     });
     STATE.filtered.forEach(r => {
-      const color = r.f > 0 ? '#FF3333' : PERP_COLORS[r.p];
+      const color = r.f > 0 ? '#FF3333' : (PERP_COLORS[r.p] || '#8A8A8A');
       const radius = r.f > 0 ? 6 + Math.min(r.f, 4) : 4;
       const marker = L.circleMarker([r.lat, r.lng], {
         radius, color: '#fff', weight: 1.2,
@@ -934,7 +1016,9 @@ function renderMap() {
 function popupHtml(r) {
   const perp = STATE.data.perpetrators[r.p];
   const src  = STATE.data.sources[r.s].code;
-  const fmtDate = new Date(r.d).toLocaleDateString('en-GB',
+  // Parse at local noon so a YYYY-MM-DD date is not shifted back a day by the
+  // UTC-midnight -> local-time conversion (e.g. Jan 15 showing as Jan 14).
+  const fmtDate = new Date(r.d + 'T12:00:00').toLocaleDateString('en-GB',
     { year: 'numeric', month: 'short', day: 'numeric' });
 
   let violations = '';
@@ -970,15 +1054,12 @@ function escapeHtml(s) {
    ───────────────────────────────────────────────────────────── */
 function applyFilters() {
   const f = STATE.filters;
-  const govNames = STATE.data.governorates;
 
   STATE.filtered = STATE.data.incidents.filter(r => {
-    const y = parseInt(r.d.slice(0, 4));
-    if (y < f.yearFrom || y > f.yearTo) return false;
+    if (r._y < f.yearFrom || r._y > f.yearTo) return false;
     if (!f.perps.has(r.p)) return false;
     if (!f.sources.has(r.s)) return false;
-    const gIdx = govNames.indexOf(r.g);
-    if (gIdx === -1 || !f.govs.has(gIdx)) return false;
+    if (r._gi === -1 || !f.govs.has(r._gi)) return false;
     if (f.fatalOnly && r.f === 0) return false;
     return true;
   });
@@ -990,54 +1071,38 @@ function applyFilters() {
   renderTopLists();
 }
 
+// Faceted counts in a SINGLE pass. Each facet's count reflects every OTHER
+// active filter but ignores its own dimension (so toggling one perpetrator
+// shows how many records each perpetrator would contribute). Year and the
+// fatal-only toggle apply across all facets, so we short-circuit on them.
 function updateCounts() {
-  // Per-filter counts (against all data, partially filtered)
   const f = STATE.filters;
-  const govNames = STATE.data.governorates;
+  const perpCounts = new Array(STATE.data.perpetrators.length).fill(0);
+  const govCounts  = new Array(STATE.data.governorates.length).fill(0);
+  const srcCounts  = new Array(STATE.data.sources.length).fill(0);
 
-  // Count by perpetrator under current (non-perp) filters
-  STATE.data.perpetrators.forEach((_, i) => {
-    let n = 0;
-    for (const r of STATE.data.incidents) {
-      const y = parseInt(r.d.slice(0, 4));
-      if (y < f.yearFrom || y > f.yearTo) continue;
-      if (!f.sources.has(r.s)) continue;
-      const gIdx = govNames.indexOf(r.g);
-      if (gIdx === -1 || !f.govs.has(gIdx)) continue;
-      if (f.fatalOnly && r.f === 0) continue;
-      if (r.p === i) n++;
-    }
+  for (const r of STATE.data.incidents) {
+    if (r._y < f.yearFrom || r._y > f.yearTo) continue;
+    if (f.fatalOnly && r.f === 0) continue;
+
+    const passPerp   = f.perps.has(r.p);
+    const passSource = f.sources.has(r.s);
+    const passGov    = r._gi !== -1 && f.govs.has(r._gi);
+
+    if (passSource && passGov) perpCounts[r.p]++;                 // ignores perp filter
+    if (r._gi !== -1 && passPerp && passSource) govCounts[r._gi]++; // ignores gov filter
+    if (passPerp && passGov) srcCounts[r.s]++;                    // ignores source filter
+  }
+
+  perpCounts.forEach((n, i) => {
     const el = document.getElementById('count-perp-' + i);
     if (el) el.textContent = n.toLocaleString();
   });
-
-  // Count by governorate
-  govNames.forEach((g, i) => {
-    let n = 0;
-    for (const r of STATE.data.incidents) {
-      const y = parseInt(r.d.slice(0, 4));
-      if (y < f.yearFrom || y > f.yearTo) continue;
-      if (!f.perps.has(r.p)) continue;
-      if (!f.sources.has(r.s)) continue;
-      if (f.fatalOnly && r.f === 0) continue;
-      if (r.g === g) n++;
-    }
+  govCounts.forEach((n, i) => {
     const el = document.getElementById('count-gov-' + i);
     if (el) el.textContent = n.toLocaleString();
   });
-
-  // Count by source
-  STATE.data.sources.forEach((_, i) => {
-    let n = 0;
-    for (const r of STATE.data.incidents) {
-      const y = parseInt(r.d.slice(0, 4));
-      if (y < f.yearFrom || y > f.yearTo) continue;
-      if (!f.perps.has(r.p)) continue;
-      const gIdx = govNames.indexOf(r.g);
-      if (gIdx === -1 || !f.govs.has(gIdx)) continue;
-      if (f.fatalOnly && r.f === 0) continue;
-      if (r.s === i) n++;
-    }
+  srcCounts.forEach((n, i) => {
     const el = document.getElementById('count-src-' + i);
     if (el) el.textContent = n.toLocaleString();
   });
