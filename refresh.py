@@ -98,9 +98,14 @@ def get_access_token(email: str, password: str) -> str:
 
 
 def fetch_acled(token: str) -> list[dict]:
-    """Fetch all West Bank events since 2016, paginated."""
+    """Fetch all West Bank events since 2016 using ACLED cursor pagination.
+
+    ACLED deprecated offset (`page=`) pagination on 2026-10-27. Start with
+    cursor=0; each response carries `next_cursor`, which is null on the last page.
+    """
     rows = []
-    page = 1
+    cursor = 0
+    n = 0
     while True:
         params = {
             "_format":     "json",
@@ -109,23 +114,27 @@ def fetch_acled(token: str) -> list[dict]:
             "event_date":  "2016-01-01|2099-12-31",
             "event_date_where": "BETWEEN",
             "limit":       PAGE_SIZE,
-            "page":        page,
+            "cursor":      cursor,
         }
         r = requests.get(API_URL, params=params, headers={
             "Authorization": f"Bearer {token}",
         }, timeout=60)
-        r.raise_for_status()
+        if not r.ok:
+            # raise_for_status() alone hides ACLED's explanation of a 4xx
+            raise RuntimeError(f"ACLED {r.status_code} for {r.url}\n{r.text[:1000]}")
         data = r.json()
         if data.get("success") is False:
             raise RuntimeError(f"ACLED error: {data}")
         batch = data.get("data", [])
-        if not batch:
-            break
+        n += 1
         rows.extend(batch)
-        print(f"  page {page}: +{len(batch)} rows (cumulative {len(rows)})", flush=True)
-        if len(batch) < PAGE_SIZE:
+        print(f"  batch {n}: +{len(batch)} rows (cumulative {len(rows)})", flush=True)
+        next_cursor = data.get("next_cursor")
+        if not batch or next_cursor is None:
             break
-        page += 1
+        if next_cursor == cursor:
+            raise RuntimeError(f"ACLED cursor did not advance (stuck at {cursor})")
+        cursor = next_cursor
     return rows
 
 
@@ -190,6 +199,9 @@ def main() -> int:
     print("→ Fetching West Bank events…", flush=True)
     raw = fetch_acled(token)
     print(f"  ✓ {len(raw):,} raw rows", flush=True)
+    if not raw:
+        print("ERROR: ACLED returned 0 rows; refusing to overwrite incidents.json", file=sys.stderr)
+        return 1
 
     print("→ Filtering and shaping…", flush=True)
     acled_records = filter_and_shape(raw)
